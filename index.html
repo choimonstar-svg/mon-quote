@@ -426,7 +426,7 @@ const DEFAULT_CFG={
     {code:"series",label:"시리즈 콘텐츠 기획",price:null,active:true,note:"회차·구성 확인 후 안내드립니다"},
   ],
   blocked:["2026-10-09","2026-10-17","2026-10-25","2026-11-14"],
-  integrations:{google:{connected:false,account:"",calendar:""},cal_push:true,cal_title:"[m-o-n] {고객} {차수}차 촬영",cal_reminder:1440,cal_pull:true,pull_mode:"allday",n_customer:true,n_telegram:false,n_mail:true,web3_key:"621f6ac9-638a-47b7-adf9-cb89a653d08e",tg:{connected:false,name:""},mail_to:"m-o-n@naver.com",admins:""},
+  integrations:{google:{connected:false,account:"",calendar:""},cal_push:true,cal_title:"[m-o-n] {고객} {차수}차 촬영",cal_reminder:1440,cal_pull:true,pull_mode:"allday",cal_account:"choi.monstar@gmail.com",n_customer:true,n_telegram:false,n_mail:true,web3_key:"621f6ac9-638a-47b7-adf9-cb89a653d08e",tg:{connected:false,name:""},mail_to:"m-o-n@naver.com",admins:""},
   example:["rates.photo_step_price","video_len"] // PDF에 없어 임시로 넣은 값
 };
 const S1=(date,hours,region,addr,start="")=>({date,hours,region,addr,start,own:false});
@@ -439,7 +439,7 @@ const SAMPLE_QUOTES=[
 const STATUS={requested:"요청 접수",quoted:"견적 발송",booked:"예약 확정",done:"완료",canceled:"취소"};
 function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):structuredClone(d)}catch(e){return structuredClone(d)}}
 function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
-let cfg=load("mon_cfg_v8",DEFAULT_CFG);
+let cfg=load("mon_cfg_v9",DEFAULT_CFG);
 cfg.integrations??=structuredClone(DEFAULT_CFG.integrations);
 let quotes=load("mon_quotes_v8",null);
 if(!quotes){quotes=SAMPLE_QUOTES.map(q=>({adj:[],...q,lines:buildLines(cfg,q.sel)}))}
@@ -620,13 +620,21 @@ $("stepBody").addEventListener("input",e=>{const el=e.target;
 
 
 /* ===== 고객 → 윤정 전달 (카톡 채널·오픈채팅 / 문자) : 서버 없이도 알림이 울리는 경로 ===== */
-function quoteText(q){const{sum,neg}=sumLines(q.lines,q.adj),V=q.sel.noVideo?"영상 없음(사진만)":`영상 ${q.sel.videos.length}편`;
+/* ===== 구글 캘린더 '일정 추가' 링크 (서버 없이 · 누르면 내용이 채워진 일정 화면이 열림) ===== */
+function gcalUrl(q,i){const s=q.sel.sessions[i],d=s.date.replace(/-/g,"");let dates;
+  if(s.start){const h=+s.start.slice(0,2),e=Math.min(23,h+s.hours),p=n=>String(n).padStart(2,"0");dates=`${d}T${p(h)}0000/${d}T${p(e)}0000`}
+  else{const n=new Date(s.date+"T00:00");n.setDate(n.getDate()+1);dates=`${d}/${iso(n.getFullYear(),n.getMonth(),n.getDate()).replace(/-/g,"")}`}
+  const title=cfg.integrations.cal_title.replace(/\{고객\}/g,q.name).replace(/\{차수\}/g,i+1).replace(/\{총일수\}/g,q.sel.sessions.length);
+  const u=new URLSearchParams({action:"TEMPLATE",text:title,dates,ctz:"Asia/Seoul",location:`${placeName(s)} ${s.addr||""}`.trim(),details:quoteText(q,true)});
+  const acc=(cfg.integrations.cal_account||"").trim();if(acc)u.set("authuser",acc);
+  return "https://calendar.google.com/calendar/render?"+u.toString()}
+function quoteText(q,noCal){const{sum,neg}=sumLines(q.lines,q.adj),V=q.sel.noVideo?"영상 없음(사진만)":`영상 ${q.sel.videos.length}편`;
   const ex=cfg.extras.filter(e=>q.sel.extras[e.code]).map(e=>e.label);
   return [`[m-o-n 견적 요청] ${q.id}`,`고객: ${q.name} / ${q.phone}`,
     ...q.sel.sessions.map((s,i)=>`${i+1}차: ${md(s.date)}${s.start?" "+s.start:""} · ${s.hours}시간 · ${placeName(s)}${s.addr?" "+s.addr:""}`),
     `${V} / 사진 ${cfg.base.photos+(q.sel.photoAdd||0)}장${ex.length?" / "+ex.join(", "):""}`,
-    `예상 ${won(sum)} (VAT 별도)${neg?` + 협의 ${neg}건`:""}`,...(q.memo?[`요청 사항: ${q.memo}`]:[]),...(q.ref?[`레퍼런스: ${q.ref}`]:[])].join("\n")}
-function sendBox(q){const B=cfg.brand,txt=quoteText(q);if(!cfg.integrations.n_customer||(!B.kakao_url&&!B.sms_to))return"";
+    `예상 ${won(sum)} (VAT 별도)${neg?` + 협의 ${neg}건`:""}`,...(q.memo?[`요청 사항: ${q.memo}`]:[]),...(q.ref?[`레퍼런스: ${q.ref}`]:[]),...(noCal?[]:["","구글 캘린더에 추가:",...q.sel.sessions.map((s,i)=>`${i+1}차 ${md(s.date)} → ${gcalUrl(q,i)}`)])].join("\n")}
+function sendBox(q){const B=cfg.brand,txt=quoteText(q,true);if(!cfg.integrations.n_customer||(!B.kakao_url&&!B.sms_to))return"";
   return `<div class="sendbox"><div class="ah" style="margin-top:0">${I("send",18)}견적 요청 전달하기</div>
   <p class="asub">아래 내용을 보내주시면 더 빠르게 확인합니다.</p>
   <pre class="msgpv" id="msgpv">${esc(txt)}</pre>
@@ -735,7 +743,7 @@ function renderDetail(){
   <div class="acts">
     ${open?`<button class="btn" data-send ${neg?"disabled":""}>${I("send",15,2)}${q.status==="quoted"?"수정 견적 다시 보내기":"확정 견적 보내기"}</button><button class="ghost" data-book ${clash.length?"disabled":""}>${I("check",15)}${S.length}일 예약 확정</button>`:""}
     ${q.status==="booked"?`<button class="btn" data-st="done">${I("check",15,2)}촬영 완료</button>`:""}
-    <button class="ghost" data-copy>${I("copy",15)}견적 링크 복사</button>
+    ${S.map((s,i)=>`<a class="ghost" href="${esc(gcalUrl(q,i))}" target="_blank" rel="noopener">${I("cal",15)}${S.length>1?(i+1)+"차 ":""}구글 캘린더에 추가</a>`).join("")}
     ${q.status!=="canceled"&&q.status!=="done"?`<button class="ghost" data-st="canceled" style="color:var(--neg)">${I("x",15)}취소</button>`:""}</div>
   ${open&&neg?`<p class="ahint">협의 항목 금액을 모두 넣어야 확정 견적을 보낼 수 있어요.</p>`:""}
   ${open&&clash.length?`<p class="ahint neg">${clash.map(s=>md(s.date)).join(", ")}이 이미 마감돼서 예약 확정을 못 해요. 고객과 날짜를 다시 맞춰주세요.</p>`:""}
@@ -848,7 +856,8 @@ function renderInteg(){
     ${IG.n_mail?`<div class="kvp sub-kvp"><span class="full">Web3Forms Access Key <span class="p">이 키를 받은 메일 주소로 견적이 도착합니다 · 받는 주소를 바꾸려면 새 주소로 키를 다시 받으세요</span><input data-igv="web3_key" value="${esc(IG.web3_key)}" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></span></div>`:""}
     ${!IG.n_customer&&!IG.n_telegram&&!IG.n_mail?`<div class="hint warn">${I("alert",16)}켜진 알림이 없어요. 새 요청은 관리자 화면에서만 볼 수 있어요</div>`:""}
   </div>
-  ${ah("cal","구글 캘린더")}`;
+  ${ah("cal","구글 캘린더")}
+  <div class="box"><div class="kvp"><span class="full">‘구글 캘린더에 추가’로 열 계정 <span class="p">메일·관리자 화면의 캘린더 버튼이 이 계정 캘린더로 열립니다 · 비우면 브라우저 기본 계정</span><input data-igv="cal_account" value="${esc(IG.cal_account||"")}" inputmode="email" placeholder="example@gmail.com"></span></div></div>`;
   $("tab-int").innerHTML=`${NOTIFY_HTML()}
   <p class="asub">구글 계정을 연결하면 예약이 캘린더에 자동으로 들어가고, 캘린더 일정이 있는 날은 고객 달력에서 자동으로 막혀요.</p>
   <div class="box gacct">
@@ -882,7 +891,7 @@ $("tab-int").addEventListener("click",e=>{let b;const IG=cfg.integrations;
 $("tab-int").addEventListener("change",e=>{const el=e.target,p=el.dataset.igv;if(!p)return;
   const v=el.dataset.n?Number(el.value):el.value.trim();
   if(p.startsWith("@"))setP(cfg,p.slice(1),v);else setP(cfg.integrations,p,v);
-  persist();if(!["admins","mail_to","web3_key","@brand.kakao_url","@brand.sms_to"].includes(p))renderInteg();toast("저장했어요")});
+  persist();if(!["admins","mail_to","web3_key","cal_account","@brand.kakao_url","@brand.sms_to"].includes(p))renderInteg();toast("저장했어요")});
 
 $("tab-cal").addEventListener("click",e=>{let b;
   if(b=e.target.closest("[data-mv]"))return moveYm(ad,+b.dataset.mv)&&renderAdminCal();
