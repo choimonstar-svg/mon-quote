@@ -46,6 +46,9 @@ label{display:block;font-size:12.5px;color:var(--mute);font-weight:500}
 .compact .brand .logoimg{height:24px;margin:0}
 .compact .brand .kinds,.compact .brand-sub,.compact #pkg{display:none}
 .compact .steps{margin-top:22px}
+.topbar{display:flex;justify-content:flex-end;margin-bottom:6px}
+.admlink{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--mute);text-decoration:none;padding:4px 2px}
+.admlink:hover{color:var(--ink)}
 .brand-sub{background:var(--mint);padding:14px 18px;display:flex;align-items:center;gap:12px}
 .brand-sub b{font-family:var(--serif);font-size:17px;font-weight:700;display:block;line-height:1.35}
 .brand-sub span{font-size:13px}
@@ -288,6 +291,7 @@ a.btn,a.ghost{text-decoration:none}
 <div class="wrap">
   <!-- ================= 고객 화면 ================= -->
   <div id="clientView">
+    <div class="topbar"><a href="#admin" class="admlink" aria-label="관리자"><span id="admIc"></span>관리자</a></div>
     <div class="brand">
       <img class="tagimg" id="bTag" alt="Memories Of Normal days">
       <img class="logoimg" id="bLogo" alt="m-o-n">
@@ -299,7 +303,6 @@ a.btn,a.ghost{text-decoration:none}
       <nav class="steps" id="steps" aria-label="진행 단계"></nav><p class="stepcap" id="stepcap"></p>
       <div id="stepBody"></div>
       <div class="err" id="err" hidden></div>
-      <div class="foot"><a href="#admin">관리자</a></div>
     </div>
     <div id="doneView" hidden>
       <div class="done-hd"><div class="ok" id="okIcon"></div><h1>견적 요청이 접수되었습니다</h1><p>확인 후 연락드리겠습니다</p></div>
@@ -900,7 +903,7 @@ $("tab-cal").addEventListener("click",e=>{let b;
   persist();renderAdminCal();toast(md(k)+(i>-1?" 마감 해제":" 마감"));
 });
 
-$("bLogo").src=LOGO;$("pLogo").src=LOGO;$("bTag").src=TAG;$("aLogo").src=LOGO_W;
+$("admIc").innerHTML='<svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';$("bLogo").src=LOGO;$("pLogo").src=LOGO;$("bTag").src=TAG;$("aLogo").src=LOGO_W;
 $("bsIcon").innerHTML=I("camera",20);$("okIcon").innerHTML=I("check",30,2.2);
 renderClient();
 if(location.hash==="#admin")askAdmin();
