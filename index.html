@@ -214,6 +214,9 @@ label{display:block;font-size:12.5px;color:var(--mute);font-weight:500}
 .msgpv{white-space:pre-wrap;word-break:break-all;font-family:var(--sans);font-size:13px;background:var(--bg);padding:10px 12px;border-radius:6px;margin:0;max-height:220px;overflow:auto}
 a.btn,a.ghost{text-decoration:none}
 .btn.kakao{background:#FEE500;border-color:#FEE500;color:#191919}
+.pinbox{max-width:320px;margin:60px auto 0;background:var(--paper);border:1.5px solid var(--ink);padding:26px 22px;text-align:center}
+.pinbox h2{font-family:var(--serif);font-size:19px;margin:0 0 4px}
+.pinbox input{text-align:center;font-size:20px;letter-spacing:.3em;margin-top:10px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 16px;font-size:13.5px;max-width:90vw;text-align:center;border-radius:999px;border:1.5px solid var(--yellow)}
 
 /* ---------- admin ---------- */
@@ -296,20 +299,34 @@ a.btn,a.ghost{text-decoration:none}
       <nav class="steps" id="steps" aria-label="진행 단계"></nav><p class="stepcap" id="stepcap"></p>
       <div id="stepBody"></div>
       <div class="err" id="err" hidden></div>
-      <div class="foot"><a href="#admin">관리자 화면 미리보기 →</a></div>
+      <div class="foot"><a href="#admin">관리자</a></div>
     </div>
     <div id="doneView" hidden>
       <div class="done-hd"><div class="ok" id="okIcon"></div><h1>견적 요청이 접수되었습니다</h1><p>확인 후 연락드리겠습니다</p></div>
       <div id="receipt"></div>
+      <p class="asub" id="mailState" style="text-align:center;margin:12px 0 0"></p>
       <div id="sendBox"></div>
       <div class="next" id="nextSteps"></div>
       <div class="foot"><a href="#admin">관리자 화면에서 이 요청 보기 →</a></div>
     </div>
   </div>
 
+  <!-- ================= 관리자 잠금 ================= -->
+  <div id="pinView" hidden>
+    <div class="pinbox">
+      <img id="pLogo" alt="m-o-n" style="height:30px;display:block;margin:0 auto 14px">
+      <h2 id="pinTitle">관리자 비밀번호</h2>
+      <p class="asub" id="pinSub"></p>
+      <input id="pin1" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="숫자 4~8자리" aria-label="비밀번호">
+      <input id="pin2" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="한 번 더 입력" aria-label="비밀번호 확인" hidden>
+      <div class="err" id="pinErr" hidden></div>
+      <div class="acts" style="justify-content:center"><button class="ghost" id="pinCancel">고객 화면</button><button class="btn" id="pinOk">확인</button></div>
+    </div>
+  </div>
+
   <!-- ================= 관리자 화면 ================= -->
   <div id="adminView" hidden>
-    <div class="adm-top"><h1><img id="aLogo" alt="m-o-n" style="height:22px;vertical-align:-3px"><small>ADMIN</small></h1><button class="ghost" id="toClient">고객 화면</button></div>
+    <div class="adm-top"><h1><img id="aLogo" alt="m-o-n" style="height:22px;vertical-align:-3px"><small>ADMIN</small></h1><span style="display:flex;gap:6px"><button class="ghost" id="toLock">잠금</button><button class="ghost" id="toClient">고객 화면</button></span></div>
     <div class="tabs" role="tablist" id="tabs"></div>
     <div id="tab-req"></div>
     <div id="tab-price" hidden></div>
@@ -409,7 +426,7 @@ const DEFAULT_CFG={
     {code:"series",label:"시리즈 콘텐츠 기획",price:null,active:true,note:"회차·구성 확인 후 안내드립니다"},
   ],
   blocked:["2026-10-09","2026-10-17","2026-10-25","2026-11-14"],
-  integrations:{google:{connected:false,account:"",calendar:""},cal_push:true,cal_title:"[m-o-n] {고객} {차수}차 촬영",cal_reminder:1440,cal_pull:true,pull_mode:"allday",n_customer:true,n_telegram:false,n_mail:true,tg:{connected:false,name:""},mail_to:"m-o-n@naver.com",admins:""},
+  integrations:{google:{connected:false,account:"",calendar:""},cal_push:true,cal_title:"[m-o-n] {고객} {차수}차 촬영",cal_reminder:1440,cal_pull:true,pull_mode:"allday",n_customer:true,n_telegram:false,n_mail:true,web3_key:"621f6ac9-638a-47b7-adf9-cb89a653d08e",tg:{connected:false,name:""},mail_to:"m-o-n@naver.com",admins:""},
   example:["rates.photo_step_price","video_len"] // PDF에 없어 임시로 넣은 값
 };
 const S1=(date,hours,region,addr,start="")=>({date,hours,region,addr,start,own:false});
@@ -422,9 +439,9 @@ const SAMPLE_QUOTES=[
 const STATUS={requested:"요청 접수",quoted:"견적 발송",booked:"예약 확정",done:"완료",canceled:"취소"};
 function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):structuredClone(d)}catch(e){return structuredClone(d)}}
 function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
-let cfg=load("mon_cfg_v7",DEFAULT_CFG);
+let cfg=load("mon_cfg_v8",DEFAULT_CFG);
 cfg.integrations??=structuredClone(DEFAULT_CFG.integrations);
-let quotes=load("mon_quotes_v7",null);
+let quotes=load("mon_quotes_v8",null);
 if(!quotes){quotes=SAMPLE_QUOTES.map(q=>({adj:[],...q,lines:buildLines(cfg,q.sel)}))}
 const persist=()=>{save("mon_cfg_v5",cfg);save("mon_quotes_v5",quotes)};
 
@@ -570,6 +587,7 @@ $("nextStep").onclick=()=>{
   const q={id:"Q-"+TODAY.slice(2).replace(/-/g,"")+"-"+Math.random().toString(36).slice(2,6).toUpperCase(),created:TODAY,status:"requested",
     ...structuredClone(st.c),sel:structuredClone(st.sel),lines:buildLines(cfg,st.sel),adj:[]};
   quotes.unshift(q);persist();
+  $("mailState").textContent="";sendMail(q).then(s=>{$("mailState").textContent=s==="ok"?"✓ 견적 요청이 메일로 전달되었습니다":s==="fail"?"메일 전달에 실패했습니다. 아래 버튼으로 보내 주세요.":""});
   $("receipt").innerHTML=quoteDoc(q);
   $("sendBox").innerHTML=sendBox(q);
   $("nextSteps").innerHTML=[["확인 후 연락","입력하신 번호로 연락드립니다"],["확정 견적","협의 항목을 포함한 견적서를 보내드립니다"],["예약 확정","일정 확정 시 해당 날짜가 마감됩니다"]].map(([a,b],i)=>`<div><em>${i+1}</em><span><b>${a}</b> · ${b}</span></div>`).join("");
@@ -607,7 +625,7 @@ function quoteText(q){const{sum,neg}=sumLines(q.lines,q.adj),V=q.sel.noVideo?"�
   return [`[m-o-n 견적 요청] ${q.id}`,`고객: ${q.name} / ${q.phone}`,
     ...q.sel.sessions.map((s,i)=>`${i+1}차: ${md(s.date)}${s.start?" "+s.start:""} · ${s.hours}시간 · ${placeName(s)}${s.addr?" "+s.addr:""}`),
     `${V} / 사진 ${cfg.base.photos+(q.sel.photoAdd||0)}장${ex.length?" / "+ex.join(", "):""}`,
-    `예상 ${won(sum)} (VAT 별도)${neg?` + 협의 ${neg}건`:""}`,`견적서: https://${cfg.brand.site}/q/${q.id.toLowerCase()}`].join("\n")}
+    `예상 ${won(sum)} (VAT 별도)${neg?` + 협의 ${neg}건`:""}`,...(q.memo?[`요청 사항: ${q.memo}`]:[]),...(q.ref?[`레퍼런스: ${q.ref}`]:[])].join("\n")}
 function sendBox(q){const B=cfg.brand,txt=quoteText(q);if(!cfg.integrations.n_customer||(!B.kakao_url&&!B.sms_to))return"";
   return `<div class="sendbox"><div class="ah" style="margin-top:0">${I("send",18)}견적 요청 전달하기</div>
   <p class="asub">아래 내용을 보내주시면 더 빠르게 확인합니다.</p>
@@ -620,11 +638,51 @@ function sendBox(q){const B=cfg.brand,txt=quoteText(q);if(!cfg.integrations.n_cu
 function copyMsg(){const t=$("msgpv").textContent;return navigator.clipboard.writeText(t).then(()=>toast("복사되었습니다")).catch(()=>{const r=document.createRange();r.selectNodeContents($("msgpv"));const s=getSelection();s.removeAllRanges();s.addRange(r);toast("길게 눌러 복사해 주세요")})}
 $("doneView").addEventListener("click",e=>{if(e.target.closest("[data-copymsg]"))copyMsg();if(e.target.closest("[data-copyfirst]"))copyMsg()});
 
+
+/* ===== 메일 자동 발송 (Web3Forms · 키에 연결된 주소로 도착) ===== */
+async function sendMail(q){
+  const IG=cfg.integrations;if(!IG.n_mail||!IG.web3_key)return "off";
+  const{sum,neg}=sumLines(q.lines,q.adj);
+  try{const r=await fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
+    body:JSON.stringify({access_key:IG.web3_key,subject:`[m-o-n 견적] ${q.name} · ${q.sel.sessions.map(s=>md(s.date)).join(", ")} · ${won(sum)}${neg?" +협의":""}`,
+      from_name:"m-o-n 견적 요청",message:quoteText(q),botcheck:false})});
+    const j=await r.json().catch(()=>({}));return r.ok&&j.success!==false?"ok":"fail"}catch(e){return "fail"}
+}
+
 /* ===== 관리자 ===== */
 const ad={tab:"req",filter:"open",open:null,ym:[...NOW_YM]};
 function showAdmin(on){$("clientView").hidden=on;$("adminView").hidden=!on;$("bar").hidden=on||!$("doneView").hidden;on?renderAdmin():renderClient();window.scrollTo(0,0)}
 $("toClient").onclick=()=>showAdmin(false);
-document.querySelectorAll('a[href="#admin"]').forEach(a=>a.onclick=e=>{e.preventDefault();showAdmin(true)});
+$("toLock").onclick=()=>{setUnlocked(false);showAdmin(false);toast("관리자 화면을 잠갔습니다")};
+/* ===== 관리자 잠금 (프로토타입: 이 기기에만 저장 · 실제 앱은 Supabase 로그인) ===== */
+const PIN_KEY="mon_admin_pin";
+const pinGet=()=>{try{return localStorage.getItem(PIN_KEY)}catch(e){return null}};
+const pinSet=v=>{try{localStorage.setItem(PIN_KEY,v)}catch(e){}};
+const unlocked=()=>{try{return sessionStorage.getItem("mon_admin_ok")==="1"}catch(e){return false}};
+const setUnlocked=v=>{try{v?sessionStorage.setItem("mon_admin_ok","1"):sessionStorage.removeItem("mon_admin_ok")}catch(e){}};
+async function pinHash(s){const salt="m-o-n:";try{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(salt+s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}catch(e){let h=5381;for(const c of salt+s)h=((h<<5)+h+c.charCodeAt(0))>>>0;return "d"+h.toString(16)}}
+let pinMode="enter";
+function askAdmin(){
+  if(unlocked())return showAdmin(true);
+  pinMode=pinGet()?"enter":"create";
+  $("pinTitle").textContent=pinMode==="create"?"관리자 비밀번호 만들기":"관리자 비밀번호";
+  $("pinSub").textContent=pinMode==="create"?"처음 한 번만 정하면 됩니다. 숫자 4~8자리":"비밀번호를 입력해 주세요";
+  $("pin2").hidden=pinMode!=="create";$("pin1").value="";$("pin2").value="";$("pinErr").hidden=true;
+  $("clientView").hidden=true;$("adminView").hidden=true;$("bar").hidden=true;$("pinView").hidden=false;window.scrollTo(0,0);setTimeout(()=>$("pin1").focus(),50);
+}
+function pinErr(t){$("pinErr").textContent=t;$("pinErr").hidden=false}
+async function pinSubmit(){
+  const a=$("pin1").value.trim();
+  if(!/^\d{4,8}$/.test(a))return pinErr("숫자 4~8자리로 입력해 주세요.");
+  if(pinMode==="create"){if(a!==$("pin2").value.trim())return pinErr("두 번 입력한 비밀번호가 다릅니다.");pinSet(await pinHash(a))}
+  else if(await pinHash(a)!==pinGet()){$("pin1").value="";return pinErr("비밀번호가 맞지 않습니다.")}
+  setUnlocked(true);$("pinView").hidden=true;showAdmin(true);
+}
+$("pinOk").onclick=pinSubmit;
+["pin1","pin2"].forEach(id=>$(id).addEventListener("keydown",e=>{if(e.key==="Enter")pinSubmit()}));
+$("pinCancel").onclick=()=>{$("pinView").hidden=true;showAdmin(false)};
+
+document.querySelectorAll('a[href="#admin"]').forEach(a=>a.onclick=e=>{e.preventDefault();askAdmin()});
 $("tabs").onclick=e=>{const b=e.target.closest("[data-tab]");if(!b)return;ad.tab=b.dataset.tab;ad.open=null;renderAdmin()};
 function renderAdmin(){
   const n=quotes.filter(q=>q.status==="requested").length;
@@ -787,7 +845,7 @@ function renderInteg(){
     ${IG.n_telegram?`<div class="sub-kvp tgrow"><span class="p">${IG.tg.connected?`${I("check",14,2)} ${esc(IG.tg.name)} 연결됨`:"아직 연결 안 됨 · 버튼을 누르면 텔레그램이 열리고 [시작]만 누르면 돼요"}</span>
       ${IG.tg.connected?`<button class="ghost" data-tg="0">연결 해제</button>`:`<button class="btn" data-tg="1">${I("link",15,2)}텔레그램 연결</button>`}</div>`:""}
     <div class="opt${IG.n_mail?" on":""}"><span class="oi">${I("inbox",20)}</span><div class="t">메일로 받기 (보조·기록용)<span class="p">메일 앱 알림 설정에 따라 울려요 · 놓치기 쉬워 기록용으로 추천</span></div>${sw("n_mail",IG.n_mail)}</div>
-    ${IG.n_mail?`<div class="kvp sub-kvp"><span class="full">받을 주소<input data-igv="mail_to" value="${esc(IG.mail_to)}" inputmode="email"></span></div>`:""}
+    ${IG.n_mail?`<div class="kvp sub-kvp"><span class="full">Web3Forms Access Key <span class="p">이 키를 받은 메일 주소로 견적이 도착합니다 · 받는 주소를 바꾸려면 새 주소로 키를 다시 받으세요</span><input data-igv="web3_key" value="${esc(IG.web3_key)}" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></span></div>`:""}
     ${!IG.n_customer&&!IG.n_telegram&&!IG.n_mail?`<div class="hint warn">${I("alert",16)}켜진 알림이 없어요. 새 요청은 관리자 화면에서만 볼 수 있어요</div>`:""}
   </div>
   ${ah("cal","구글 캘린더")}`;
@@ -824,7 +882,7 @@ $("tab-int").addEventListener("click",e=>{let b;const IG=cfg.integrations;
 $("tab-int").addEventListener("change",e=>{const el=e.target,p=el.dataset.igv;if(!p)return;
   const v=el.dataset.n?Number(el.value):el.value.trim();
   if(p.startsWith("@"))setP(cfg,p.slice(1),v);else setP(cfg.integrations,p,v);
-  persist();if(!["admins","mail_to","@brand.kakao_url","@brand.sms_to"].includes(p))renderInteg();toast("저장했어요")});
+  persist();if(!["admins","mail_to","web3_key","@brand.kakao_url","@brand.sms_to"].includes(p))renderInteg();toast("저장했어요")});
 
 $("tab-cal").addEventListener("click",e=>{let b;
   if(b=e.target.closest("[data-mv]"))return moveYm(ad,+b.dataset.mv)&&renderAdminCal();
@@ -833,10 +891,10 @@ $("tab-cal").addEventListener("click",e=>{let b;
   persist();renderAdminCal();toast(md(k)+(i>-1?" 마감 해제":" 마감"));
 });
 
-$("bLogo").src=LOGO;$("bTag").src=TAG;$("aLogo").src=LOGO_W;
+$("bLogo").src=LOGO;$("pLogo").src=LOGO;$("bTag").src=TAG;$("aLogo").src=LOGO_W;
 $("bsIcon").innerHTML=I("camera",20);$("okIcon").innerHTML=I("check",30,2.2);
 renderClient();
-if(location.hash==="#admin")showAdmin(true);
+if(location.hash==="#admin")askAdmin();
 </script>
 
 </body>
