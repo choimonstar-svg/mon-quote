@@ -852,12 +852,9 @@ function renderInteg(){
   <div class="box">
     <div class="opt${IG.n_customer?" on":""}"><span class="oi">${I("msg",20)}</span><div class="t">고객이 카톡·문자로 직접 보내기<span class="p">접수 화면에 [카카오톡으로 보내기] [문자로 보내기] 버튼 · 가입 필요 없음</span></div>${sw("n_customer",IG.n_customer)}</div>
     ${IG.n_customer?`<div class="kvp sub-kvp"><span class="full">카카오톡 받는 곳 <span class="p">채널 1:1 채팅 또는 오픈채팅 링크 · 비우면 문자만</span><input data-igv="@brand.kakao_url" value="${esc(cfg.brand.kakao_url)}" placeholder="https://open.kakao.com/o/… 또는 http://pf.kakao.com/…/chat"></span><span>문자 받을 번호</span><input data-igv="@brand.sms_to" value="${esc(cfg.brand.sms_to)}" style="text-align:right"></div>`:""}
-    <div class="opt${IG.n_telegram?" on":""}"><span class="oi">${I("send",20)}</span><div class="t">텔레그램 자동 알림<span class="p">요청이 등록되면 바로 발송 · 텔레그램 가입·연결 필요</span></div>${sw("n_telegram",IG.n_telegram)}</div>
-    ${IG.n_telegram?`<div class="sub-kvp tgrow"><span class="p">${IG.tg.connected?`${I("check",14,2)} ${esc(IG.tg.name)} 연결됨`:"아직 연결 안 됨 · 버튼을 누르면 텔레그램이 열리고 [시작]만 누르면 돼요"}</span>
-      ${IG.tg.connected?`<button class="ghost" data-tg="0">연결 해제</button>`:`<button class="btn" data-tg="1">${I("link",15,2)}텔레그램 연결</button>`}</div>`:""}
     <div class="opt${IG.n_mail?" on":""}"><span class="oi">${I("inbox",20)}</span><div class="t">메일로 받기 (보조·기록용)<span class="p">메일 앱 알림 설정에 따라 울려요 · 놓치기 쉬워 기록용으로 추천</span></div>${sw("n_mail",IG.n_mail)}</div>
     ${IG.n_mail?`<div class="kvp sub-kvp"><span class="full">Web3Forms Access Key <span class="p">이 키를 받은 메일 주소로 견적이 도착합니다 · 받는 주소를 바꾸려면 새 주소로 키를 다시 받으세요</span><input data-igv="web3_key" value="${esc(IG.web3_key)}" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></span></div>`:""}
-    ${!IG.n_customer&&!IG.n_telegram&&!IG.n_mail?`<div class="hint warn">${I("alert",16)}켜진 알림이 없어요. 새 요청은 관리자 화면에서만 볼 수 있어요</div>`:""}
+    ${!IG.n_customer&&!IG.n_mail?`<div class="hint warn">${I("alert",16)}켜진 알림이 없어요. 새 요청은 관리자 화면에서만 볼 수 있어요</div>`:""}
   </div>
   ${ah("cal","구글 캘린더")}
   <div class="box"><div class="kvp"><span class="full">‘구글 캘린더에 추가’로 열 계정 <span class="p">메일·관리자 화면의 캘린더 버튼이 이 계정 캘린더로 열립니다 · 비우면 브라우저 기본 계정</span><input data-igv="cal_account" value="${esc(IG.cal_account||"")}" inputmode="email" placeholder="example@gmail.com"></span></div></div>`;
